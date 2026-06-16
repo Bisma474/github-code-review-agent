@@ -4,7 +4,7 @@ from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
-from app.db.session import Base
+from app.db.base import Base
 
 try:
     from sqlalchemy.dialects.postgresql import UUID as PG_UUID

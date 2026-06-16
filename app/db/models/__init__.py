@@ -1,3 +1,5 @@
+from app.db.base import Base
+
 from app.db.models.enums import (
     PullRequestStatus,
     CommentCategory,
@@ -12,6 +14,7 @@ from app.db.models.comment import ReviewComment
 from app.db.models.feedback import Feedback
 
 __all__ = [
+    "Base",
     # Enums
     "PullRequestStatus",
     "CommentCategory",

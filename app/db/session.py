@@ -6,8 +6,8 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
-from sqlalchemy.orm import declarative_base, sessionmaker
 
+from app.db.base import Base
 from app.core.config import get_settings
 
 logger = getLogger(__name__)
@@ -70,9 +70,6 @@ async def get_db():
     """
     async with get_async_session() as session:
         yield session
-
-
-Base = declarative_base()
 
 
 async def create_tables() -> None:
