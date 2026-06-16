@@ -1,3 +1,4 @@
+import uuid
 from datetime import datetime
 from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, String, Boolean, Index
 from sqlalchemy.dialects.postgresql import UUID
@@ -7,20 +8,13 @@ from sqlalchemy.sql import func
 from app.db.base import Base
 from app.db.models.enums import PullRequestStatus
 
-try:
-    from sqlalchemy.dialects.postgresql import UUID as PG_UUID
-    UUID_TYPE = PG_UUID(as_uuid=True)
-except ImportError:
-    from sqlalchemy import String
-    UUID_TYPE = String
-
 
 class Repository(Base):
     """Repository model - stores GitHub repos connected to the agent."""
 
     __tablename__ = "repositories"
 
-    id = Column(UUID_TYPE, primary_key=True, server_default=func.gen_random_uuid())
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     github_repo_id = Column(Integer, unique=True, nullable=False, index=True)
     owner = Column(String(255), nullable=False)
     name = Column(String(255), nullable=False)

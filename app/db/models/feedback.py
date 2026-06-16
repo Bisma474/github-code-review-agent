@@ -1,18 +1,12 @@
+import uuid
 from datetime import datetime
 from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, String, Text
-from sqlalchemy.dialects.postgresql import UUID as PG_UUID
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
 from app.db.base import Base
 from app.db.models.enums import FeedbackAction
-
-try:
-    from sqlalchemy.dialects.postgresql import UUID as PG_UUID
-    UUID_TYPE = PG_UUID(as_uuid=True)
-except ImportError:
-    from sqlalchemy import String
-    UUID_TYPE = String
 
 
 class Feedback(Base):
@@ -20,8 +14,8 @@ class Feedback(Base):
 
     __tablename__ = "feedback"
 
-    id = Column(UUID_TYPE, primary_key=True, server_default=func.gen_random_uuid())
-    comment_id = Column(UUID_TYPE, ForeignKey("review_comments.id", ondelete="CASCADE"), nullable=False, index=True)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    comment_id = Column(UUID(as_uuid=True), ForeignKey("review_comments.id", ondelete="CASCADE"), nullable=False, index=True)
     action = Column(Enum(FeedbackAction, native_enum=True), nullable=False)
     engineer = Column(String(255), nullable=False)
     reason = Column(Text, nullable=True)
