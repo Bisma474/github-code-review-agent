@@ -52,6 +52,7 @@ class Settings(BaseSettings):
     # Celery
     CELERY_WORKER_CONCURRENCY: int = 4
     CELERY_TASK_TIMEOUT: int = 300
+    CELERY_ALWAYS_EAGER: bool = False
 
     # MCP
     MCP_SERVER_PORT: int = 9000

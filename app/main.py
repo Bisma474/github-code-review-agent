@@ -29,4 +29,7 @@ def create_app() -> FastAPI:
     from app.api.health import router as health_router
     app.include_router(health_router)
 
+    from app.api.webhook import router as webhook_router
+    app.include_router(webhook_router)
+
     return app
