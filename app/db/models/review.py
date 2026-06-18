@@ -28,6 +28,7 @@ class Review(Base):
 
     pull_request = relationship("PullRequest", back_populates="review")
     comments = relationship("ReviewComment", back_populates="review", cascade="all, delete-orphan")
+    feedback = relationship("Feedback", back_populates="review", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<Review(id={self.id}, score={self.quality_score}, model='{self.model_used}')>"

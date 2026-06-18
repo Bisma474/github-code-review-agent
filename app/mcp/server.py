@@ -73,12 +73,27 @@ async def list_tools() -> list[Tool]:
                 "required": ["owner", "repo", "pr_number", "body"],
             },
         ),
+        Tool(
+            name="store_feedback",
+            description="Store user feedback on a review comment or the overall review",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "review_id": {"type": "string", "description": "UUID of the review record"},
+                    "rating": {"type": "integer", "description": "Rating 1-5"},
+                    "category": {"type": "string", "description": "Feedback category"},
+                    "notes": {"type": "string", "description": "Free-text notes"},
+                    "comment_id": {"type": "string", "description": "UUID of the specific comment"},
+                },
+                "required": ["review_id", "rating"],
+            },
+        ),
     ]
 
 
 @server.call_tool()
 async def call_tool(name: str, arguments: dict) -> list[TextContent]:
-    from app.mcp.tools import get_pr_diff, get_pr_files, post_comment, post_summary
+    from app.mcp.tools import get_pr_diff, get_pr_files, post_comment, post_summary, store_feedback
 
     try:
         if name == "get_pr_diff":
@@ -112,6 +127,15 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
                 repo=arguments["repo"],
                 pr_number=arguments["pr_number"],
                 body=arguments["body"],
+            )
+
+        elif name == "store_feedback":
+            result = await store_feedback(
+                review_id=arguments["review_id"],
+                rating=arguments["rating"],
+                comment_id=arguments.get("comment_id"),
+                category=arguments.get("category"),
+                notes=arguments.get("notes"),
             )
 
         else:

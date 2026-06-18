@@ -39,8 +39,8 @@ class Settings(BaseSettings):
     CHROMA_COLLECTION_NAME: str = "codebase_patterns"
 
     # Embeddings
-    EMBEDDING_PROVIDER: str = "huggingface"
-    EMBEDDING_MODEL: str = "sentence-transformers/all-MiniLM-L6-v2"
+    EMBEDDING_PROVIDER: str = "chroma_default"
+    EMBEDDING_MODEL: str = "all-MiniLM-L6-v2"
 
     # Application
     APP_ENV: str = "development"

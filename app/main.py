@@ -32,4 +32,7 @@ def create_app() -> FastAPI:
     from app.api.webhook import router as webhook_router
     app.include_router(webhook_router)
 
+    from app.api.feedback import router as feedback_router
+    app.include_router(feedback_router)
+
     return app
