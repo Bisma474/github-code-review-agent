@@ -1,24 +1,24 @@
 from app.core.logging import get_logger
-from app.github.client import get_github_client
+from app.github.client import post_review_comment
 from app.agent.state import ReviewState
 
 logger = get_logger(__name__)
 
 
 async def post_comments(state: ReviewState) -> dict:
-    owner = state["github_owner"]
-    repo = state["github_repo"]
+    repo_full = f"{state['github_owner']}/{state['github_repo']}"
     pr_number = state["github_pr_number"]
-    client = get_github_client()
     posted_ids = []
 
     for comment in state["formatted_comments"]:
         try:
-            comment_id = client.post_review_comment(
-                owner, repo, pr_number,
+            comment_id = post_review_comment(
+                repo_full_name=repo_full,
+                pr_number=pr_number,
                 body=comment["body"],
                 path=comment["path"],
                 line=comment["line"],
+                commit_id=comment.get("commit_id", state.get("latest_commit_sha", "HEAD")),
             )
             posted_ids.append(comment_id)
         except Exception as e:

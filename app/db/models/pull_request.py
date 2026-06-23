@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, String, Text, Index
+from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, String, Text, Index, BigInteger
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -16,7 +16,7 @@ class PullRequest(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     repository_id = Column(UUID(as_uuid=True), ForeignKey("repositories.id", ondelete="CASCADE"), nullable=False, index=True)
-    github_pr_id = Column(Integer, nullable=False, index=True)
+    github_pr_id = Column(BigInteger, nullable=False, index=True)
     github_pr_number = Column(Integer, nullable=False, index=True)
     title = Column(String(1000), nullable=False)
     author = Column(String(255), nullable=False, index=True)

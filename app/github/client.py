@@ -102,6 +102,36 @@ def get_pr_diff(repo_full_name: str, pr_number: int) -> str:
         raise
 
 
+def get_pr_head_sha(repo_full_name: str, pr_number: int) -> str:
+    """
+    Fetch the latest commit SHA of the head branch for a pull request.
+
+    Args:
+        repo_full_name: Repository full name, e.g. "owner/repo"
+        pr_number: Pull request number
+
+    Returns:
+        The commit SHA as a 40-character hex string.
+
+    Raises:
+        GitHubAPIError: If the fetch fails
+    """
+    client = get_github_client()
+    try:
+        repo = client.get_repo(repo_full_name)
+        pr = repo.get_pull(pr_number)
+        return pr.head.sha
+    except GithubException as e:
+        raise GitHubAPIError(
+            message=f"Failed to fetch head commit SHA for {repo_full_name}#{pr_number}: {e.data.get('message', str(e))}",
+            status_code=e.status,
+        )
+    except RateLimitExceededException:
+        logger.warning("GitHub API rate limit exceeded when fetching head SHA")
+        raise
+
+
+
 def get_pr_files(repo_full_name: str, pr_number: int) -> list[dict]:
     """
     List all files changed in a pull request with metadata.

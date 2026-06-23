@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 from celery import Task
 from app.celery_app import app as celery_app
 from app.core.logging import get_logger
+from app.core.config import get_settings
 from app.db.session import get_async_session
 from app.db.crud.pull_request import get_pr_by_id, update_pr_status
 from app.db.crud.review import create_review, update_review
@@ -11,7 +12,7 @@ logger = get_logger(__name__)
 
 
 class ReviewTask(Task):
-    autoretry_for = (Exception,)
+    autoretry_for = (ConnectionError, TimeoutError, OSError)
     max_retries = 2
     default_retry_delay = 30
 
@@ -36,7 +37,7 @@ def review_pr(self, pull_request_id: str):
 
 
 async def _run_review(pull_request_id: str):
-    async for db in get_async_session():
+    async with get_async_session() as db:
         pr = await get_pr_by_id(db, pull_request_id)
         if not pr:
             logger.error(f"PullRequest not found: {pull_request_id}")
@@ -55,6 +56,7 @@ async def _run_review(pull_request_id: str):
                 "github_repo": pr.repository.full_name.split("/")[1],
                 "github_pr_number": pr.github_pr_number,
                 "diff_raw": "",
+                "latest_commit_sha": "",
                 "parsed_files": [],
                 "llm_analysis": [],
                 "formatted_comments": [],
@@ -65,6 +67,7 @@ async def _run_review(pull_request_id: str):
                 "errors": [],
             }
 
+
             result = await review_graph.ainvoke(initial_state)
             duration = (datetime.now(timezone.utc) - start_time).total_seconds()
 
@@ -73,7 +76,7 @@ async def _run_review(pull_request_id: str):
                 "summary": result.get("summary"),
                 "top_concerns": result.get("top_concerns"),
                 "total_comments": len(result.get("formatted_comments", [])),
-                "model_used": __import__("app.core.config").core.config.get_settings().LLM_MODEL,
+                "model_used": get_settings().LLM_MODEL,
                 "tokens_used": 0,
                 "duration_seconds": duration,
                 "completed_at": datetime.now(timezone.utc),
@@ -91,4 +94,3 @@ async def _run_review(pull_request_id: str):
                 "completed_at": datetime.now(timezone.utc),
             })
             await update_pr_status(db, pr.id, PullRequestStatus.FAILED)
-            raise

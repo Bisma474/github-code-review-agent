@@ -32,6 +32,7 @@ class PatternRepository:
         }
         self.collection.add(documents=[doc], metadatas=[meta], ids=[pattern_id])
         logger.debug(f"Pattern '{pattern_id}' stored")
+        return pattern_id
 
     def search_similar(self, query: str, n_results: int = 5) -> list[dict]:
         results = self.collection.query(query_texts=[query], n_results=n_results)

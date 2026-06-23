@@ -12,4 +12,5 @@ COPY . .
 ENV PYTHONPATH=/app
 ENV APP_ENV=production
 
-CMD ["uvicorn", "app.main:create_app", "--host", "0.0.0.0", "--port", "8000"]
+# Use shell form so $PORT is expanded at runtime (required by Railway)
+CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}

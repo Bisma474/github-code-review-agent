@@ -38,14 +38,42 @@ async def generate_summary(state: ReviewState) -> dict:
         {"role": "user", "content": prompt},
     ])
 
+    import re
     import json
+    content = response.content.strip()
+    content = re.sub(r"^```(?:json)?\s*", "", content)
+    content = re.sub(r"\s*```$", "", content)
     try:
-        result = json.loads(response.content)
-        return {
-            "summary": result.get("summary", ""),
-            "quality_score": result.get("quality_score", 0),
-            "top_concerns": result.get("top_concerns", []),
-        }
+        result = json.loads(content)
+        summary = result.get("summary", "")
+        quality_score = result.get("quality_score", 0)
+        top_concerns = result.get("top_concerns", [])
     except json.JSONDecodeError:
         logger.warning(f"Failed to parse summary from LLM: {response.content[:200]}")
-        return {"summary": analysis_text[:500], "quality_score": 0, "top_concerns": []}
+        summary = analysis_text[:500]
+        quality_score = 0
+        top_concerns = []
+
+    # Format and post review summary to GitHub
+    summary_body = f"## 🤖 AI Code Review Summary\n\n"
+    summary_body += f"**Quality Score:** `{quality_score}/100`\n\n"
+    summary_body += f"### Summary\n{summary}\n\n"
+    if top_concerns:
+        summary_body += "### Top Concerns\n"
+        for concern in top_concerns:
+            summary_body += f"- {concern}\n"
+
+    try:
+        from app.github.client import post_pr_comment
+        repo_full = f"{state['github_owner']}/{state['github_repo']}"
+        post_pr_comment(repo_full, state["github_pr_number"], summary_body)
+        logger.info(f"Posted review summary comment to PR #{state['github_pr_number']}")
+    except Exception as e:
+        logger.warning(f"Failed to post PR summary comment: {e}")
+
+    return {
+        "summary": summary,
+        "quality_score": quality_score,
+        "top_concerns": top_concerns,
+    }
+

@@ -24,11 +24,9 @@ def upgrade() -> None:
     op.alter_column("feedback", "action", existing_type=sa.Enum("APPROVED", "REJECTED", "CHANGES_REQUESTED", "INFORMATIONAL", name="feedbackaction"), nullable=True)
     op.alter_column("feedback", "engineer", existing_type=sa.VARCHAR(length=255), nullable=True)
     op.alter_column("feedback", "comment_id", existing_type=postgresql.UUID(as_uuid=True), nullable=True)
-    op.create_index(op.f("ix_feedback_review_id"), "feedback", ["review_id"])
 
 
 def downgrade() -> None:
-    op.drop_index(op.f("ix_feedback_review_id"), table_name="feedback")
     op.drop_column("feedback", "notes")
     op.drop_column("feedback", "category")
     op.drop_column("feedback", "rating")

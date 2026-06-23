@@ -18,17 +18,11 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # Repository enum types
-    sa.Enum("pending", "reviewing", "completed", "failed", name="pullrequeststatus").create(op.get_bind())
-    sa.Enum("bug", "security", "performance", "style", "suggestion", name="commentcategory").create(op.get_bind())
-    sa.Enum("blocking", "warning", "suggestion", name="commentseverity").create(op.get_bind())
-    sa.Enum("dismissed", "resolved", "thumbs_up", "thumbs_down", name="feedbackaction").create(op.get_bind())
-
     # Table 1: repositories
     op.create_table(
         "repositories",
         sa.Column("id", UUID(as_uuid=True), primary_key=True, server_default=sa.text("gen_random_uuid()")),
-        sa.Column("github_repo_id", sa.Integer(), unique=True, nullable=False, index=True),
+        sa.Column("github_repo_id", sa.BigInteger(), unique=True, nullable=False, index=True),
         sa.Column("owner", sa.String(length=255), nullable=False),
         sa.Column("name", sa.String(length=255), nullable=False),
         sa.Column("full_name", sa.String(length=511), unique=True, nullable=False, index=True),
@@ -43,7 +37,7 @@ def upgrade() -> None:
         "pull_requests",
         sa.Column("id", UUID(as_uuid=True), primary_key=True, server_default=sa.text("gen_random_uuid()")),
         sa.Column("repository_id", UUID(as_uuid=True), sa.ForeignKey("repositories.id", ondelete="CASCADE"), nullable=False, index=True),
-        sa.Column("github_pr_id", sa.Integer(), nullable=False, index=True),
+        sa.Column("github_pr_id", sa.BigInteger(), nullable=False, index=True),
         sa.Column("github_pr_number", sa.Integer(), nullable=False, index=True),
         sa.Column("title", sa.String(length=1000), nullable=False),
         sa.Column("author", sa.String(length=255), nullable=False, index=True),
@@ -79,7 +73,7 @@ def upgrade() -> None:
         "review_comments",
         sa.Column("id", UUID(as_uuid=True), primary_key=True, server_default=sa.text("gen_random_uuid()")),
         sa.Column("review_id", UUID(as_uuid=True), sa.ForeignKey("reviews.id", ondelete="CASCADE"), nullable=False, index=True),
-        sa.Column("github_comment_id", sa.Integer(), nullable=True, index=True),
+        sa.Column("github_comment_id", sa.BigInteger(), nullable=True, index=True),
         sa.Column("file_path", sa.String(length=1024), nullable=False),
         sa.Column("line_number", sa.Integer(), nullable=False),
         sa.Column("category", sa.Enum("bug", "security", "performance", "style", "suggestion", name="commentcategory"), nullable=False),

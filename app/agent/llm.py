@@ -41,6 +41,42 @@ class OllamaClient:
             return result
 
 
+class GrokClient:
+    """OpenAI-compatible client (xAI Grok, Groq, etc.)."""
+
+    def __init__(self, model: str, api_key: str, base_url: str, max_tokens: int):
+        self.model = model
+        self.api_key = api_key
+        self.base_url = base_url.rstrip("/")
+        self.max_tokens = max_tokens
+
+    async def invoke(self, messages: list[dict]) -> LLMResponse:
+        payload = {
+            "model": self.model,
+            "messages": messages,
+            "max_tokens": self.max_tokens,
+            "temperature": 0.1,
+        }
+        async with AsyncClient(timeout=120) as client:
+            resp = await client.post(
+                f"{self.base_url}/chat/completions",
+                json=payload,
+                headers={
+                    "Authorization": f"Bearer {self.api_key}",
+                    "content-type": "application/json",
+                },
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            choice = data["choices"][0]
+            result = LLMResponse()
+            result.content = choice["message"]["content"]
+            result.model = data.get("model", self.model)
+            usage = data.get("usage", {})
+            result.tokens_used = usage.get("total_tokens", 0)
+            return result
+
+
 class AnthropicClient:
     def __init__(self, model: str, api_key: str, max_tokens: int):
         self.model = model
@@ -99,6 +135,14 @@ def get_llm():
 
     if provider == "ollama":
         _client = OllamaClient(settings.LLM_MODEL, settings.OLLAMA_BASE_URL, settings.ANTHROPIC_MAX_TOKENS)
+    elif provider == "grok":
+        if not settings.GROK_API_KEY:
+            raise ValueError("GROK_API_KEY is required when LLM_PROVIDER=grok")
+        _client = GrokClient(settings.GROK_MODEL, settings.GROK_API_KEY, settings.GROK_BASE_URL, settings.ANTHROPIC_MAX_TOKENS)
+    elif provider == "groq":
+        if not settings.GROQ_API_KEY:
+            raise ValueError("GROQ_API_KEY is required when LLM_PROVIDER=groq")
+        _client = GrokClient(settings.GROQ_MODEL, settings.GROQ_API_KEY, settings.GROQ_BASE_URL, settings.ANTHROPIC_MAX_TOKENS)
     elif provider == "anthropic":
         if not settings.ANTHROPIC_API_KEY:
             raise ValueError("ANTHROPIC_API_KEY is required when LLM_PROVIDER=anthropic")

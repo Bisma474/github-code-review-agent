@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, String, Boolean, Index
+from sqlalchemy import Column, DateTime, Enum, ForeignKey, BigInteger, String, Boolean, Index
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -15,7 +15,7 @@ class Repository(Base):
     __tablename__ = "repositories"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    github_repo_id = Column(Integer, unique=True, nullable=False, index=True)
+    github_repo_id = Column(BigInteger, unique=True, nullable=False, index=True)
     owner = Column(String(255), nullable=False)
     name = Column(String(255), nullable=False)
     full_name = Column(String(511), unique=True, nullable=False, index=True)

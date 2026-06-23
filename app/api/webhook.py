@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Request, HTTPException, status
+from app.core.exceptions import WebhookValidationError
 from app.core.logging import get_logger
 from app.github.webhook import validate_webhook_signature
 
@@ -15,9 +16,12 @@ async def github_webhook(request: Request):
     from app.core.config import get_settings
     settings = get_settings()
 
-    is_valid = validate_webhook_signature(raw_body, signature, settings.GITHUB_WEBHOOK_SECRET)
-    if not is_valid:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
+    try:
+        is_valid = validate_webhook_signature(raw_body, signature, settings.GITHUB_WEBHOOK_SECRET)
+        if not is_valid:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
+    except WebhookValidationError as e:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
 
     import json
     try:
@@ -35,7 +39,7 @@ async def github_webhook(request: Request):
             detail="Missing required fields: action, pull_request, repository",
         )
 
-    if action != "opened":
+    if action not in ("opened", "reopened", "synchronize"):
         logger.debug(f"Ignoring webhook action: {action}")
         return {"status": "ignored", "reason": f"action '{action}' not handled"}
 
@@ -44,7 +48,7 @@ async def github_webhook(request: Request):
 
     from app.db.session import get_async_session
     from app.db.crud.repository import get_repo_by_full_name
-    from app.db.crud.pull_request import create_pr
+    from app.db.crud.pull_request import create_pr, get_pr_by_github_number
     from app.db.models.enums import PullRequestStatus
 
     async with get_async_session() as session:
@@ -53,21 +57,31 @@ async def github_webhook(request: Request):
             logger.info(f"Repo {full_name} not active or not found - ignoring")
             return {"status": "ignored", "reason": "repo not active"}
 
-        pr_record = await create_pr(
-            session,
-            repository_id=repo.id,
-            github_pr_id=pr_data.get("id"),
-            github_pr_number=pr_number,
-            title=pr_data.get("title", ""),
-            author=pr_data.get("user", {}).get("login", "unknown"),
-            base_branch=pr_data.get("base", {}).get("ref", ""),
-            head_branch=pr_data.get("head", {}).get("ref", ""),
-            github_pr_url=pr_data.get("html_url", ""),
-            status=PullRequestStatus.PENDING,
-        )
-
-        pr_id = pr_record.id
-        logger.info(f"PR #{pr_number} in {full_name} queued for review (id={pr_id})")
+        pr_record = await get_pr_by_github_number(session, repo.id, pr_number)
+        if pr_record:
+            pr_record.title = pr_data.get("title", "")
+            pr_record.base_branch = pr_data.get("base", {}).get("ref", "")
+            pr_record.head_branch = pr_data.get("head", {}).get("ref", "")
+            pr_record.status = PullRequestStatus.PENDING
+            await session.commit()
+            await session.refresh(pr_record)
+            pr_id = pr_record.id
+            logger.info(f"PR #{pr_number} in {full_name} updated to PENDING (id={pr_id})")
+        else:
+            pr_record = await create_pr(
+                session,
+                repository_id=repo.id,
+                github_pr_id=pr_data.get("id"),
+                github_pr_number=pr_number,
+                title=pr_data.get("title", ""),
+                author=pr_data.get("user", {}).get("login", "unknown"),
+                base_branch=pr_data.get("base", {}).get("ref", ""),
+                head_branch=pr_data.get("head", {}).get("ref", ""),
+                github_pr_url=pr_data.get("html_url", ""),
+                status=PullRequestStatus.PENDING,
+            )
+            pr_id = pr_record.id
+            logger.info(f"PR #{pr_number} in {full_name} queued for review (id={pr_id})")
 
     try:
         from app.celery_app import app as celery_app
@@ -78,3 +92,4 @@ async def github_webhook(request: Request):
         logger.warning(f"Failed to dispatch Celery task for PR #{pr_number}: {e}")
 
     return {"status": "queued", "pr_number": pr_number}
+

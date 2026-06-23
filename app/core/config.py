@@ -20,6 +20,16 @@ class Settings(BaseSettings):
     ANTHROPIC_MODEL: str | None = None
     ANTHROPIC_MAX_TOKENS: int = 4096
 
+    # Grok (xAI) — OpenAI-compatible API
+    GROK_API_KEY: str | None = None
+    GROK_MODEL: str = "grok-2-latest"
+    GROK_BASE_URL: str = "https://api.x.ai/v1"
+
+    # Groq — OpenAI-compatible API
+    GROQ_API_KEY: str | None = None
+    GROQ_MODEL: str = "llama-3.3-70b-versatile"
+    GROQ_BASE_URL: str = "https://api.groq.com/openai/v1"
+
     # Database
     DATABASE_URL: str = "postgresql+asyncpg://postgres:password@localhost:5432/code_review_agent"
     POSTGRES_USER: str = "postgres"
@@ -58,6 +68,9 @@ class Settings(BaseSettings):
     MCP_SERVER_PORT: int = 9000
     LLM_PROVIDER: str = "ollama"
     LLM_MODEL: str = "deepseek-coder"
+
+    # CORS
+    CORS_ORIGINS: list[str] = ["*"]
 
     # Security & Limits
     MAX_FILES_TO_REVIEW: int = 20

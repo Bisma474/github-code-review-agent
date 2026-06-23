@@ -1,0 +1,17 @@
+.env
+.venv/
+.git/
+__pycache__/
+*.pyc
+chroma_data/
+*.sqlite
+*.db
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.vscode/
+.idea/
+*.log
+dist/
+build/
+*.egg-info/

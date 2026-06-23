@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, String, Text, Boolean, Index
+from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, BigInteger, String, Text, Boolean, Index
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -16,7 +16,7 @@ class ReviewComment(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     review_id = Column(UUID(as_uuid=True), ForeignKey("reviews.id", ondelete="CASCADE"), nullable=False, index=True)
-    github_comment_id = Column(Integer, nullable=True, index=True)
+    github_comment_id = Column(BigInteger, nullable=True, index=True)
     file_path = Column(String(1024), nullable=False)
     line_number = Column(Integer, nullable=False)
     category = Column(Enum(CommentCategory, native_enum=True), nullable=False, index=True)
