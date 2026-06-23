@@ -40,8 +40,11 @@ async def get_pr_by_id(
     db: AsyncSession,
     pr_id: UUID,
 ) -> Optional[PullRequest]:
+    from sqlalchemy.orm import selectinload
     result = await db.execute(
-        select(PullRequest).where(PullRequest.id == pr_id)
+        select(PullRequest)
+        .options(selectinload(PullRequest.repository))
+        .where(PullRequest.id == pr_id)
     )
     return result.scalar_one_or_none()
 
