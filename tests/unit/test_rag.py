@@ -10,9 +10,10 @@ from app.rag.repository import PatternRepository
 class TestPatternRepository:
     """PatternRepository creates a default collection if none given."""
 
-    def test_init_without_collection(self):
+    def test_init_without_collection(self, mock_chroma):
         repo = PatternRepository()
         assert repo.collection is not None
+        assert repo.collection.name == "test-patterns"
 
     def test_add_and_search(self, mock_chroma):
         repo = PatternRepository(mock_chroma)

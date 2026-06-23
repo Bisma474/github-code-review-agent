@@ -17,6 +17,10 @@ os.environ.setdefault(
     "sqlite+aiosqlite:///./.pytest_test.db",
 )
 
+# Force Celery eager mode for tests
+os.environ["CELERY_ALWAYS_EAGER"] = "true"
+os.environ["REDIS_URL"] = "redis://localhost:6379/0"
+
 # Clean up any leftover test database file from previous runs
 try:
     Path(".pytest_test.db").unlink(missing_ok=True)
@@ -133,5 +137,6 @@ def mock_chroma():
         client = MagicMock()
         mock_get.return_value = client
         client.heartbeat.return_value = 1
-        client.get_or_create_collection.return_value = mock_collection
+        client.get_collection.return_value = mock_collection
+        client.create_collection.return_value = mock_collection
         yield mock_collection

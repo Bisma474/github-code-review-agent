@@ -1,6 +1,6 @@
 import uuid
 from typing import Optional
-from app.rag.repository import pattern_repo, PatternRepository
+from app.rag.repository import get_pattern_repo, PatternRepository
 from app.core.logging import get_logger
 
 logger = get_logger(__name__)
@@ -16,7 +16,7 @@ def store_review_feedback(
     repo_full_name: str,
     repo: Optional[PatternRepository] = None,
 ):
-    repo = repo or pattern_repo
+    repo = repo or get_pattern_repo()
     pattern_id = str(uuid.uuid4())
     repo.add_pattern(
         pattern_id=pattern_id,

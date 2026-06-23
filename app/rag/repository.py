@@ -53,4 +53,11 @@ class PatternRepository:
         self.collection.delete(ids=[pattern_id])
 
 
-pattern_repo = PatternRepository()
+_pattern_repo_instance: Optional[PatternRepository] = None
+
+
+def get_pattern_repo() -> PatternRepository:
+    global _pattern_repo_instance
+    if _pattern_repo_instance is None:
+        _pattern_repo_instance = PatternRepository()
+    return _pattern_repo_instance
