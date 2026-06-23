@@ -11,6 +11,7 @@ COPY . .
 
 ENV PYTHONPATH=/app
 ENV APP_ENV=production
+ENV PATH="/app/.venv/bin:$PATH"
 
 EXPOSE 8000
 
