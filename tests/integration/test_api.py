@@ -61,9 +61,9 @@ class TestWebhook:
             )
             assert r.status_code in (200, 202)
             data = r.json()
-            assert data["status"] == "completed"
+            assert data["status"] == "queued"
             assert data["pr_number"] == 2
-            mock_review.assert_awaited_once()
+            mock_review.assert_called_once()
 
     async def test_webhook_synchronize_existing_pr(self, client, db_session):
         from app.db.crud.repository import create_repo
@@ -96,9 +96,9 @@ class TestWebhook:
             )
             assert r.status_code in (200, 202)
             data = r.json()
-            assert data["status"] == "completed"
+            assert data["status"] == "queued"
             assert data["pr_number"] == 50
-            mock_review.assert_awaited_once()
+            mock_review.assert_called_once()
 
         # Store repo ID before expiring session to avoid lazy loading trigger
         repo_id = repo.id

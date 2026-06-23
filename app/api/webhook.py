@@ -105,12 +105,9 @@ async def github_webhook(request: Request):
             pr_id = pr_record.id
             logger.info(f"PR #{pr_number} in {full_name} queued for review (id={pr_id})")
 
-    try:
-        from app.tasks.review import _run_review
-        await _run_review(str(pr_id))
-        logger.info(f"PR #{pr_number} review completed")
-        return {"status": "completed", "pr_number": pr_number}
-    except Exception as e:
-        logger.error(f"PR #{pr_number} review failed: {e}")
-        return {"status": "failed", "pr_number": pr_number, "error": str(e)}
+    import asyncio
+    from app.tasks.review import _run_review
+    asyncio.create_task(_run_review(str(pr_id)))
+    logger.info(f"PR #{pr_number} dispatched for background review")
+    return {"status": "queued", "pr_number": pr_number}
 
