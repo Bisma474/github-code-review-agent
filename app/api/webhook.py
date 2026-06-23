@@ -47,14 +47,31 @@ async def github_webhook(request: Request):
     pr_number = pr_data.get("number")
 
     from app.db.session import get_async_session
-    from app.db.crud.repository import get_repo_by_full_name
+    from app.db.crud.repository import get_repo_by_full_name, create_repo
     from app.db.crud.pull_request import create_pr, get_pr_by_github_number
     from app.db.models.enums import PullRequestStatus
 
     async with get_async_session() as session:
         repo = await get_repo_by_full_name(session, full_name)
-        if not repo or not repo.is_active:
-            logger.info(f"Repo {full_name} not active or not found - ignoring")
+        if not repo:
+            github_repo_id = repo_data.get("id")
+            if not github_repo_id:
+                logger.info(f"Repo {full_name} not found and no github_repo_id in payload - ignoring")
+                return {"status": "ignored", "reason": "repo not found"}
+            import secrets
+            owner, name = full_name.split("/", 1)
+            repo = await create_repo(
+                session,
+                github_repo_id=github_repo_id,
+                owner=owner,
+                name=name,
+                full_name=full_name,
+                webhook_secret=secrets.token_hex(32),
+                is_active=True,
+            )
+            logger.info(f"Auto-registered repo {full_name} (id={repo.id})")
+        elif not repo.is_active:
+            logger.info(f"Repo {full_name} not active - ignoring")
             return {"status": "ignored", "reason": "repo not active"}
 
         pr_record = await get_pr_by_github_number(session, repo.id, pr_number)

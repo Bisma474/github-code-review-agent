@@ -48,7 +48,7 @@ class TestWebhook:
 
     async def test_valid_signature_opened_with_unknown_repo(self, client, db_session):
         payload = (
-            b'{"action":"opened","pull_request":{"number":2,"html_url":"u",'
+            b'{"action":"opened","pull_request":{"id":100,"number":2,"html_url":"u",'
             b'"title":"T","user":{"login":"dev"},"base":{"ref":"main"},'
             b'"head":{"ref":"feat"}},"repository":{"id":9999,"full_name":"unknown/repo","owner":{"login":"unknown"},"name":"repo"}}'
         )
@@ -60,7 +60,8 @@ class TestWebhook:
         )
         assert r.status_code in (200, 202)
         data = r.json()
-        assert data["status"] == "ignored"
+        assert data["status"] == "queued"
+        assert data["pr_number"] == 2
 
     async def test_webhook_synchronize_existing_pr(self, client, db_session):
         from app.db.crud.repository import create_repo

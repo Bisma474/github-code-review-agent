@@ -45,6 +45,9 @@ def create_app() -> FastAPI:
     from app.api.feedback import router as feedback_router
     app.include_router(feedback_router)
 
+    from app.api.repos import router as repos_router
+    app.include_router(repos_router)
+
     return app
 
 
