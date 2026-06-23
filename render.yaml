@@ -2,11 +2,10 @@ services:
   # FastAPI web service — receives GitHub webhooks, serves API
   - type: web
     name: code-review-agent
-    runtime: image
+    runtime: docker
     repo: https://github.com/Bisma474/github-code-review-agent
     region: oregon
     plan: free
-    dockerfilePath: Dockerfile
     healthCheckPath: /health
     envVars:
       - key: APP_ENV
