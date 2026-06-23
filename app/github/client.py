@@ -1,5 +1,5 @@
 from typing import Optional
-from github import Github, GithubException, RateLimitExceededException
+from github import Github, GithubException, RateLimitExceededException, Auth
 from github.PullRequest import PullRequest as GithubPullRequest
 from github.Repository import Repository as GithubRepository
 
@@ -8,7 +8,6 @@ from app.core.logging import get_logger
 from app.core.exceptions import GitHubAPIError
 
 logger = get_logger(__name__)
-settings = get_settings()
 
 _github_client: Optional[Github] = None
 
@@ -22,8 +21,10 @@ def get_github_client() -> Github:
     """
     global _github_client
     if _github_client is None:
-        logger.info("Initializing GitHub client")
-        _github_client = Github(settings.GITHUB_TOKEN)
+        settings = get_settings()
+        token = settings.GITHUB_TOKEN
+        logger.info(f"Initializing GitHub client (token prefix: {token[:15]}...)")
+        _github_client = Github(auth=Auth.Token(token))
     return _github_client
 
 
