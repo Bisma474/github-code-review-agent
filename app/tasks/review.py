@@ -42,21 +42,17 @@ def review_pr(self, pull_request_id: str):
         in_loop = False
 
     if in_loop:
-        exc = []
         def _run():
             new_loop = asyncio.new_event_loop()
             asyncio.set_event_loop(new_loop)
             try:
                 new_loop.run_until_complete(_run_review(pull_request_id))
             except Exception as e:
-                exc.append(e)
+                logger.error(f"Review thread failed: {e}")
             finally:
                 new_loop.close()
-        t = threading.Thread(target=_run)
-        t.start()
-        t.join()
-        if exc:
-            raise exc[0]
+        threading.Thread(target=_run, daemon=True).start()
+        logger.info("Review started in background thread (eager mode)")
     else:
         asyncio.run(_run_review(pull_request_id))
 
