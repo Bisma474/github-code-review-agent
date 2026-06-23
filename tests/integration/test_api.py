@@ -53,15 +53,17 @@ class TestWebhook:
             b'"head":{"ref":"feat"}},"repository":{"id":9999,"full_name":"unknown/repo","owner":{"login":"unknown"},"name":"repo"}}'
         )
         sig = "sha256=" + hmac.new(b"test_secret", payload, hashlib.sha256).hexdigest()
-        r = await client.post(
-            "/webhook/github",
-            content=payload,
-            headers={"X-Hub-Signature-256": sig, "X-GitHub-Event": "pull_request"},
-        )
-        assert r.status_code in (200, 202)
-        data = r.json()
-        assert data["status"] == "queued"
-        assert data["pr_number"] == 2
+        with patch("app.tasks.review._run_review") as mock_review:
+            r = await client.post(
+                "/webhook/github",
+                content=payload,
+                headers={"X-Hub-Signature-256": sig, "X-GitHub-Event": "pull_request"},
+            )
+            assert r.status_code in (200, 202)
+            data = r.json()
+            assert data["status"] == "completed"
+            assert data["pr_number"] == 2
+            mock_review.assert_awaited_once()
 
     async def test_webhook_synchronize_existing_pr(self, client, db_session):
         from app.db.crud.repository import create_repo
@@ -86,7 +88,7 @@ class TestWebhook:
         )
         sig = "sha256=" + hmac.new(b"test_secret", payload, hashlib.sha256).hexdigest()
 
-        with patch("app.tasks.review.review_pr.delay") as mock_delay:
+        with patch("app.tasks.review._run_review") as mock_review:
             r = await client.post(
                 "/webhook/github",
                 content=payload,
@@ -94,9 +96,9 @@ class TestWebhook:
             )
             assert r.status_code in (200, 202)
             data = r.json()
-            assert data["status"] == "queued"
+            assert data["status"] == "completed"
             assert data["pr_number"] == 50
-            mock_delay.assert_called_once()
+            mock_review.assert_awaited_once()
 
         # Store repo ID before expiring session to avoid lazy loading trigger
         repo_id = repo.id
