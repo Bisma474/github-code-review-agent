@@ -31,9 +31,34 @@ def review_pr(self, pull_request_id: str):
         pull_request_id: UUID string of the PullRequest record
     """
     import asyncio
+    import threading
 
     logger.info(f"Starting review for PR id={pull_request_id}")
-    asyncio.run(_run_review(pull_request_id))
+
+    try:
+        asyncio.get_running_loop()
+        in_loop = True
+    except RuntimeError:
+        in_loop = False
+
+    if in_loop:
+        exc = []
+        def _run():
+            new_loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(new_loop)
+            try:
+                new_loop.run_until_complete(_run_review(pull_request_id))
+            except Exception as e:
+                exc.append(e)
+            finally:
+                new_loop.close()
+        t = threading.Thread(target=_run)
+        t.start()
+        t.join()
+        if exc:
+            raise exc[0]
+    else:
+        asyncio.run(_run_review(pull_request_id))
 
 
 async def _run_review(pull_request_id: str):

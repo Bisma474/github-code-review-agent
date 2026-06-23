@@ -33,10 +33,14 @@ class JsonFormatter(logging.Formatter):
 
         for key, value in record.__dict__.items():
             if key not in ["asctime", "message", "created", "filename", "funcName",
-                          "levelname", "lineno", "module", "msecs", "msg", "pathname",
-                          "process", "processName", "relativeCreated", "thread",
-                          "threadName", "exc_info", "exc_text", "stack_info"]:
-                log_data[key] = value
+                           "levelname", "lineno", "module", "msecs", "msg", "pathname",
+                           "process", "processName", "relativeCreated", "thread",
+                           "threadName", "exc_info", "exc_text", "stack_info", "args"]:
+                try:
+                    json.dumps(value)
+                    log_data[key] = value
+                except (TypeError, ValueError):
+                    log_data[key] = str(value)
 
         return json.dumps(log_data, ensure_ascii=False)
 
