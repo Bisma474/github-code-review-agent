@@ -31,30 +31,19 @@ def review_pr(self, pull_request_id: str):
         pull_request_id: UUID string of the PullRequest record
     """
     import asyncio
-    import threading
 
     logger.info(f"Starting review for PR id={pull_request_id}")
 
     try:
-        asyncio.get_running_loop()
-        in_loop = True
+        loop = asyncio.get_running_loop()
     except RuntimeError:
-        in_loop = False
+        loop = None
 
-    if in_loop:
-        def _run():
-            new_loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(new_loop)
-            try:
-                new_loop.run_until_complete(_run_review(pull_request_id))
-            except Exception as e:
-                logger.error(f"Review thread failed: {e}")
-            finally:
-                new_loop.close()
-        threading.Thread(target=_run, daemon=True).start()
-        logger.info("Review started in background thread (eager mode)")
-    else:
+    if loop is None:
         asyncio.run(_run_review(pull_request_id))
+    else:
+        loop.create_task(_run_review(pull_request_id))
+        logger.info("Review started as background task (eager mode)")
 
 
 async def _run_review(pull_request_id: str):

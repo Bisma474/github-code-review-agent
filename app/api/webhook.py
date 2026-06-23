@@ -23,6 +23,11 @@ async def github_webhook(request: Request):
     except WebhookValidationError as e:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
 
+    event_type = request.headers.get("X-GitHub-Event", "")
+    if event_type != "pull_request":
+        logger.debug(f"Ignoring webhook event type: {event_type}")
+        return {"status": "ignored", "reason": f"event '{event_type}' not handled"}
+
     import json
     try:
         payload = json.loads(raw_body)

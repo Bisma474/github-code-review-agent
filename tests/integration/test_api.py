@@ -56,7 +56,7 @@ class TestWebhook:
         r = await client.post(
             "/webhook/github",
             content=payload,
-            headers={"X-Hub-Signature-256": sig},
+            headers={"X-Hub-Signature-256": sig, "X-GitHub-Event": "pull_request"},
         )
         assert r.status_code in (200, 202)
         data = r.json()
@@ -90,7 +90,7 @@ class TestWebhook:
             r = await client.post(
                 "/webhook/github",
                 content=payload,
-                headers={"X-Hub-Signature-256": sig},
+                headers={"X-Hub-Signature-256": sig, "X-GitHub-Event": "pull_request"},
             )
             assert r.status_code in (200, 202)
             data = r.json()
