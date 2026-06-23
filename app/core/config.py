@@ -56,6 +56,7 @@ class Settings(BaseSettings):
     APP_ENV: str = "development"
     APP_HOST: str = "0.0.0.0"
     APP_PORT: int = 8000
+    PORT: int | None = None  # Railway sets this automatically
     APP_SECRET_KEY: str
     LOG_LEVEL: str = "INFO"
 
