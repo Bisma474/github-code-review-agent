@@ -2,6 +2,7 @@ from typing import Optional
 from github import Github, GithubException, RateLimitExceededException, Auth
 from github.PullRequest import PullRequest as GithubPullRequest
 from github.Repository import Repository as GithubRepository
+from httpx import get as _httpx_get
 
 from app.core.config import get_settings
 from app.core.logging import get_logger
@@ -76,7 +77,7 @@ def get_pull_request(repo: GithubRepository, number: int) -> GithubPullRequest:
 
 def get_pr_diff(repo_full_name: str, pr_number: int) -> str:
     """
-    Fetch the raw unified diff for a pull request.
+    Fetch the raw unified diff for a pull request via the GitHub REST API.
 
     Args:
         repo_full_name: Repository full name, e.g. "owner/repo"
@@ -88,19 +89,20 @@ def get_pr_diff(repo_full_name: str, pr_number: int) -> str:
     Raises:
         GitHubAPIError: If the fetch fails
     """
-    client = get_github_client()
-    try:
-        repo = client.get_repo(repo_full_name)
-        pr = repo.get_pull(pr_number)
-        return pr.diff
-    except GithubException as e:
+    token = get_settings().GITHUB_TOKEN
+    url = f"https://api.github.com/repos/{repo_full_name}/pulls/{pr_number}"
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/vnd.github.v3.diff",
+        "User-Agent": "github-code-review-agent",
+    }
+    resp = _httpx_get(url, headers=headers, follow_redirects=True, timeout=30)
+    if resp.status_code != 200:
         raise GitHubAPIError(
-            message=f"Failed to fetch diff for {repo_full_name}#{pr_number}: {e.data.get('message', str(e))}",
-            status_code=e.status,
+            message=f"Failed to fetch diff for {repo_full_name}#{pr_number}: {resp.text}",
+            status_code=resp.status_code,
         )
-    except RateLimitExceededException:
-        logger.warning("GitHub API rate limit exceeded when fetching diff")
-        raise
+    return resp.text
 
 
 def get_pr_head_sha(repo_full_name: str, pr_number: int) -> str:

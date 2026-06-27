@@ -8,12 +8,15 @@ import pytest
 class TestMCPTools:
     """MCP tool functions are sync (return dict, not coroutine)."""
 
-    def test_get_pr_diff(self, mock_github):
+    @patch("app.github.client._httpx_get")
+    def test_get_pr_diff(self, mock_httpx_get, mock_github):
+        mock_httpx_get.return_value.status_code = 200
+        mock_httpx_get.return_value.text = "--- a/file.py\n+++ b/file.py\n@@ -1 +1 @@\n-old\n+new"
         from app.mcp.tools.get_pr_diff import get_pr_diff
 
         result = get_pr_diff("owner", "repo", 1)
         assert result["success"] is True
-        assert "diff" in result
+        assert result["diff"] == "--- a/file.py\n+++ b/file.py\n@@ -1 +1 @@\n-old\n+new"
 
     def test_get_pr_files(self, mock_github):
         from app.mcp.tools.get_pr_files import get_pr_files
