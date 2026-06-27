@@ -19,7 +19,7 @@ It learns from past reviews via ChromaDB-based RAG (Retrieval Augmented Generati
 
 ## Features
 
-- **Autonomous PR reviews** — triggered automatically on `opened`, `reopened`, and `synchronize` events
+- **Autonomous PR reviews** — triggered automatically on `opened`, `reopened`, and `synchronize` events (push new commits → auto re-review)
 - **Multi-LLM support** — Groq (free tier), OpenAI-compatible (xAI Grok), Anthropic Claude, Ollama (local)
 - **Line-by-line comments** — precise, actionable feedback on specific code lines with severity (`BLOCKING`, `WARNING`, `SUGGESTION`)
 - **Quality scoring** — every PR gets a 0–100 quality score and a human-readable summary
@@ -46,7 +46,7 @@ It learns from past reviews via ChromaDB-based RAG (Retrieval Augmented Generati
                                            │                     │
                                            │  1. fetch_diff      │
                                            │  2. parse_files      │
-                                           │  3. analyze_llm      │
+                                            │  3. analyze_rag      │
                                            │  4. format_comments   │
                                            │  5. post_comments     │
                                            │  6. generate_summary  │
@@ -123,17 +123,24 @@ curl -X POST http://localhost:8000/api/repos/register \
 
 ### 5. Set up GitHub webhook
 
-Go to your repo → **Settings** → **Webhooks** → **Add webhook**:
+Open your repo on GitHub → **Settings** → **Webhooks** → **Add webhook**:
 
-| Field | Value |
-|---|---|
-| Payload URL | `http://your-server:8000/webhook/github` |
-| Content type | `application/json` |
-| Secret | `your_webhook_secret` (match `.env`) |
-| Events | **Pull requests** |
-| Active | ✅ |
+| Field | Value | Why |
+|---|---|---|
+| **Payload URL** | `https://your-server.com/webhook/github` | Agent listens on this endpoint. For local dev, use [smee.io](https://smee.io) or ngrok to expose `http://localhost:8000/webhook/github` |
+| **Content type** | `application/json` | Must be JSON (NOT `x-www-form-urlencoded`) |
+| **Secret** | Same as `GITHUB_WEBHOOK_SECRET` in `.env` | Used for HMAC-SHA256 signature verification — must match **exactly**, or all requests get 401 |
+| **Events** | **Let me select individual events** → check **Pull requests** | This triggers on `opened`, `reopened`, AND `synchronize` (new commits pushed to an existing PR) |
+| **Active** | ✅ checked | |
 
-That's it. Open a PR on the repo — the agent reviews it automatically.
+Click **Add webhook**. That's it.
+
+**What happens next:**
+1. Open or push to a PR on that repo → GitHub sends a POST to `/webhook/github`
+2. Agent verifies the HMAC signature using your secret
+3. Agent auto-registers the repo in its database (no manual setup needed)
+4. Agent runs the 6-node LangGraph pipeline
+5. Within seconds, inline review comments + a summary appear on your PR
 
 ---
 
@@ -224,7 +231,7 @@ The app runs with eager mode (no Celery/Redis needed on free tier).
 |---|---|
 | `fetch_diff` | Retrieves raw unified diff from GitHub API |
 | `parse_files` | Parses diff into per-file structured hunks |
-| `analyze_llm` | Sends each file to LLM for analysis with RAG context |
+| `analyze_rag` | Sends each file to LLM for analysis with RAG context from ChromaDB |
 | `format_comments` | Structures LLM output into review comments with severity |
 | `post_comments` | Posts inline comments on the PR |
 | `generate_summary` | Generates a PR-level quality score and summary |

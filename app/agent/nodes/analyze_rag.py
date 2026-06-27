@@ -32,10 +32,13 @@ async def analyze_with_rag(state: ReviewState) -> dict:
         if not file.get("patch"):
             continue
 
-        similar = retrieve_similar_patterns(file["patch"], n_results=3)
         context = ""
-        for s in similar:
-            context += f"- [{s['metadata'].get('severity','?')}] {s['document'][:200]}\n"
+        try:
+            similar = retrieve_similar_patterns(file["patch"], n_results=3)
+            for s in similar:
+                context += f"- [{s['metadata'].get('severity','?')}] {s['document'][:200]}\n"
+        except Exception as e:
+            logger.warning(f"ChromaDB unavailable, skipping RAG: {e}")
 
         prompt = RAG_REVIEW_PROMPT.format(file_path=file["path"], diff=file["patch"][:8000], context=context or "No similar past issues found.")
         response = await llm_invoke([
