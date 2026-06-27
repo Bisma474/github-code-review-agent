@@ -27,7 +27,7 @@ It learns from past reviews via ChromaDB-based RAG (Retrieval Augmented Generati
 - **User feedback loop** — rate reviews (1–5), categorize feedback, improve future results
 - **MCP server** — Model Context Protocol interface for integration with LLM-powered IDEs and tools
 - **Dual database** — PostgreSQL in production, SQLite for local development (no external deps needed)
-- **Celery async workers** — review tasks run in the background, queue with retry logic
+- **Background processing** — reviews run as async background tasks (eager mode) or via Celery workers with Redis
 
 ---
 
@@ -105,28 +105,20 @@ GROQ_API_KEY=gsk_your_groq_key
 uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
-The server starts with SQLite + Celery eager mode (tasks run inline).
+The server starts with SQLite + eager mode (reviews run as background tasks on the same event loop).
 
-### 4. Register a repository
+### 4. Repos register automatically
 
-```python
-import asyncio
-from app.db.session import get_async_session
-from app.db.crud.repository import create_repo
+The agent **auto-registers** any repo that sends a webhook — no manual setup needed. You can also register or list repos via the API:
 
-async def main():
-    async with get_async_session() as db:
-        repo = await create_repo(
-            db,
-            github_repo_id=12345,
-            owner="your-org",
-            name="your-repo",
-            full_name="your-org/your-repo",
-            webhook_secret="your_webhook_secret",
-        )
-        print(f"Registered: {repo.id}")
+```bash
+# List registered repos
+curl http://localhost:8000/api/repos
 
-asyncio.run(main())
+# Register manually
+curl -X POST http://localhost:8000/api/repos/register \
+  -H "Content-Type: application/json" \
+  -d '{"full_name": "your-org/your-repo", "github_repo_id": 12345}'
 ```
 
 ### 5. Set up GitHub webhook
@@ -177,15 +169,41 @@ Submit review feedback.
 ### `GET /feedback/{review_id}`
 Get all feedback for a review.
 
+### `GET /api/repos`
+List registered repos.
+
+### `POST /api/repos/register`
+Register a repo manually (auto-registers on first webhook otherwise).
+
+```json
+// Request
+{"full_name": "owner/repo", "github_repo_id": 12345}
+// Response
+{"status": "registered", "repo_id": "uuid"}
+```
+
 ---
 
-## Production Deployment (Docker)
+## Production Deployment
+
+### Docker Compose (local)
 
 ```bash
 docker compose up -d
 ```
 
-This starts 5 services: `api`, `worker`, `postgres`, `redis`, `chromadb`. Set `DATABASE_URL=postgresql+asyncpg://...` in `.env`.
+Starts 5 services: `api`, `worker`, `postgres`, `redis`, `chromadb`. Set `DATABASE_URL=postgresql+asyncpg://...` in `.env`.
+
+### Render (cloud — free tier)
+
+Deploy via blueprint (`render.yaml`):
+
+1. Push to GitHub — Render auto-deploys via Blueprint
+2. Create a PostgreSQL instance on Render Dashboard
+3. Set env vars: `GITHUB_TOKEN`, `GITHUB_WEBHOOK_SECRET`, `APP_SECRET_KEY`, `GROQ_API_KEY`, `DATABASE_URL`
+4. Set GitHub webhook → `https://your-app.onrender.com/webhook/github`
+
+The app runs with eager mode (no Celery/Redis needed on free tier).
 
 ---
 
@@ -227,12 +245,13 @@ app/
 └── tasks/          # Celery task definitions
 
 tests/
-├── unit/           # Unit tests (57 total across 7 files)
+├── unit/           # Unit tests (51 total across 8 files)
 ├── integration/    # API integration tests (7 tests)
 └── e2e_dryrun.py   # End-to-end pipeline test with real LLM
 
 docker-compose.yml  # Production-ready multi-service setup
 Dockerfile          # Python 3.12-slim container
+render.yaml         # Render Blueprint deployment
 ```
 
 ---
@@ -241,7 +260,7 @@ Dockerfile          # Python 3.12-slim container
 
 ```bash
 pytest tests/ -v
-# 57 passed
+# 58 passed
 ```
 
 End-to-end dry run with a real LLM:
