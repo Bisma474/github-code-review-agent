@@ -203,7 +203,7 @@ def post_review_comment(
     try:
         repo = client.get_repo(repo_full_name)
         pr = repo.get_pull(pr_number)
-        comment = pr.create_review_comment(body=body, commit_id=commit_id, path=path, line=line)
+        comment = pr.create_review_comment(body=body, commit=commit_id, path=path, line=line)
         return comment.id
     except GithubException as e:
         raise GitHubAPIError(
