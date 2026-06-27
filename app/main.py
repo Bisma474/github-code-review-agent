@@ -10,6 +10,8 @@ settings = get_settings()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Starting GitHub Code Review Agent")
+    token_prefix = settings.GITHUB_TOKEN[:20] if len(settings.GITHUB_TOKEN) > 20 else settings.GITHUB_TOKEN
+    logger.info(f"GitHub token prefix: {token_prefix}...")
     from app.db.session import engine, create_tables
     logger.info(f"Database engine created: {settings.DATABASE_URL}")
     await create_tables()
